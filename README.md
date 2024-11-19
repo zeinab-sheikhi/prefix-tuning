@@ -9,30 +9,9 @@ This project implements prefix-tuning, a lightweight alternative to fine-tuning 
 
 ## Tasks and Datasets
 
-### 1. Table-to-Text Generation (WebNLG)
-- **Dataset**: WebNLG v2.0
-- **Size**: 22K examples
-- **Description**: Contains subject-property-object triples and their corresponding natural language descriptions
-- **Example**:
-  ```
-  Input (Triple): 
-  The_Eagle | location | riverside_area, The_Eagle | type | coffee_shop
-  Output (Text): 
-  The Eagle is a coffee shop located in the riverside area.
-  ```
-- **Model**: GPT-2 with prefix-tuning
+### Machine Translation (English to French)
+- **Dataset**: [Helsinki-NLP/opus_books](https://huggingface.co/datasets/Helsinki-NLP/opus_books)
+- **Size**: Contains bilingual sentence pairs for English-to-French translation.
+- **Description**: This task involves translating sentences from English to French.
+- **Model**: T5 with prefix-tuning
 - **Prefix Length**: 10 tokens
-
-### 2. Summarization (XSUM)
-- **Dataset**: XSUM (Extreme Summarization)
-- **Size**: 225K examples
-- **Description**: News articles with single-sentence summaries
-- **Statistics**:
-  - Average article length: 431 words
-  - Average summary length: 23.3 words
-- **Model**: BART with prefix-tuning
-- **Prefix Length**: 200 tokens
-
-## Model Architecture
-
-### GPT Prefix-Tuning
