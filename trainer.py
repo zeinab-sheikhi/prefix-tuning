@@ -1,15 +1,14 @@
 import os
 import torch
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+from transformers import T5Tokenizer
 from torch.utils.data import DataLoader
 from torch.nn.utils import clip_grad_norm_
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, Any
 from tqdm import tqdm
-from transformers import AdamW, get_linear_schedule_with_warmup
-from translation_dataset import create_dataloader
+from transformers import get_linear_schedule_with_warmup
+from configs import BATCH_SIZE, NUM_EPOCHS, LEARNING_RATE, WARMUP_STEPS, MAX_GRAD_NORM
 from prefix_t5_model import PrefixT5
-from configs import CHECKPOINT, BATCH_SIZE, MAX_LENGTH, NUM_EPOCHS, LEARNING_RATE, PREFIX_LENGTH, PREFIX_PROJECTION_SIZE, WARMUP_STEPS, MAX_GRAD_NORM
 
 
 @dataclass
@@ -17,12 +16,17 @@ class TrainingHyperParams:
     num_epochs: int = NUM_EPOCHS
     batch_size: int = BATCH_SIZE
     learning_rate: float = LEARNING_RATE
-    prefix_length: int = PREFIX_LENGTH
-    prefix_projection_size: int = PREFIX_PROJECTION_SIZE
     warmup_steps: int = WARMUP_STEPS
     max_grad_norm: float = MAX_GRAD_NORM
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
-    save_path: str = "models/model.pth"
+    save_path: str = field(init=False) 
+
+    def __post_init__(self):
+        self.save_path = self._model_save_path(base_name="prefix_t5")
+
+    def _model_save_path(self, base_name="prefix_t5") -> str:
+        params_str = "-".join(f"{key}_{value}" for key, value in vars(self).items() if key != "save_path")
+        return f"{base_name}-{params_str}.pth"
 
 
 class Trainer:
@@ -43,7 +47,7 @@ class Trainer:
         self.args = args
 
         # Setup optimizer and scheduler
-        self.optimizer = AdamW(self.model.parameters(), lr=args.learning_rate)
+        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=args.learning_rate)
         num_training_steps = len(train_loader) * args.num_epochs
         self.scheduler = get_linear_schedule_with_warmup(
             self.optimizer,
@@ -126,7 +130,7 @@ class Trainer:
         for epoch in range(self.args.num_epochs):
             
             train_loss = self._train_one_epoch()
-            valid_loss = self._evaluate_one_epoch(self.valid_loader, "valid")
+            valid_loss = self._evaluate_one_epoch(self.valid_loader)
             epoch_train_loss.append(train_loss)
             epoch_valid_loss.append(valid_loss)
             
@@ -141,29 +145,47 @@ class Trainer:
                 best_valid_loss = valid_loss
                 self.save_model(self.args.save_path)
 
-        # # Final evaluation on test set
-        # test_metrics = self.evaluate(self.test_loader, "test")
-        # print(f"Test Metrics: {test_metrics}")
-
         return {
             "train_losses": epoch_train_loss,
             "valid_losses": epoch_valid_loss,
         }
-
-
     
+    # def decode_batch(self, batch, generated_ids):
+    #     results = []
+    #     for i in range(len(generated_ids)):
+    #         source_text = self.tokenizer.decode(batch['input_ids'][i], skip_special_tokens=True)
+    #         target_text = self.tokenizer.decode(batch['labels'][i], skip_special_tokens=True)
+    #         generated_text = self.tokenizer.decode(generated_ids[i], skip_special_tokens=True)
+    #         results.append({
+    #             'source': source_text,
+    #             'target': target_text,
+    #             'generated': generated_text
+    #         })
+    #     return results
+
     def save_model(self, save_path: str) -> None:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        
+        save_dir = os.path.join("models", os.path.basename(save_path))
+        os.makedirs(os.path.dirname(save_dir), exist_ok=True)        
         torch.save(
             {
                 "model_state_dict": self.model.state_dict(),
                 "optimizer_state_dict": self.optimizer.state_dict(),
                 "scheduler_state_dict": self.scheduler.state_dict(),
             },
-            save_path,
+            save_dir,
         )
 
-        print(f"Model saved at {save_path}")
+        print(f"Model saved at models/{save_path}")
 
 
+def load_model(
+    base_model: torch.nn.Module,
+    save_path: str,
+    device: str = "cuda" if torch.cuda.is_available() else "cpu",
+) -> torch.nn.Module:
+    
+    model = PrefixT5(t5_model=base_model).to(device)
+    checkpoint = torch.load(save_path, map_location=device, weights_only=True)
+    model.load_state_dict(checkpoint["model_state_dict"])    
+    print(f"Model successfully loaded from {save_path}")
+    return model

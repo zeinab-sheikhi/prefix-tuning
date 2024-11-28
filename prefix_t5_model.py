@@ -1,10 +1,17 @@
 import torch
 import torch.nn as nn
 
+from configs import PREFIX_LENGTH, PREFIX_PROJECTION_SIZE
+
 
 class PrefixT5(nn.Module):
     
-    def __init__(self, t5_model, prefix_length, prefix_projection_size=512):
+    def __init__(
+        self,
+        t5_model: torch.nn.Module,
+        prefix_length: int = PREFIX_LENGTH,
+        prefix_projection_size: int = PREFIX_PROJECTION_SIZE
+    ):
         super().__init__()
         self.t5 = t5_model
         self.hidden_size = self.t5.config.hidden_size
@@ -39,16 +46,18 @@ class PrefixT5(nn.Module):
             return_dict=True
         )
 
-        # Ignore prefix positions in loss calculation
-        new_labels = torch.full(
-                (batch_size, self.prefix_length),
-                -100,
-                device=labels.device,
-                dtype=labels.dtype
-        )
-        
-        labels = torch.cat([new_labels, labels], dim=1)
-        
+        if labels is not None:
+            # Ignore prefix positions in loss calculation
+            new_labels = torch.full(
+                    (batch_size, self.prefix_length),
+                    -100,
+                    device=labels.device,
+                    dtype=labels.dtype
+            )
+            labels = torch.cat([new_labels, labels], dim=1)
+        else:
+            labels = None    # during generation, the labels are None
+
         return self.t5(
             encoder_outputs=encoder_outputs, 
             decoder_inputs_embeds=concatenated_decoder_embeddings,
