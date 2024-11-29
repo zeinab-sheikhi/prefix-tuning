@@ -74,7 +74,7 @@ class PrefixLayer(nn.Module):
 
         # Initialize the smaller prefix parameters (P'θ)
         self.prefix_projection = nn.Parameter(
-            torch.randn(self.prefix_length, self.prefix_projection_size, device=self.prefix_projection.device)
+            torch.randn(self.prefix_length, self.prefix_projection_size)
         )
 
         # MLP for reparametrization
