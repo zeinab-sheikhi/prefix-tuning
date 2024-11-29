@@ -37,7 +37,7 @@ class PrefixT5(nn.Module):
         concatenated_decoder_embeddings = torch.cat([decoder_prefix, decoder_embeddings], dim=1)
 
         # encoder attention mask
-        prefix_attention = torch.ones(batch_size, self.prefix_length)
+        prefix_attention = torch.ones(batch_size, self.prefix_length, device=input_ids.device)
         encoder_attention_mask = torch.cat([prefix_attention, attention_mask], dim=1)
         
         encoder_outputs = self.t5.encoder(
@@ -74,7 +74,7 @@ class PrefixLayer(nn.Module):
 
         # Initialize the smaller prefix parameters (P'θ)
         self.prefix_projection = nn.Parameter(
-            torch.randn(self.prefix_length, self.prefix_projection_size)
+            torch.randn(self.prefix_length, self.prefix_projection_size, device=self.prefix_projection.device)
         )
 
         # MLP for reparametrization
