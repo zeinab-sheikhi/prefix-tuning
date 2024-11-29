@@ -35,8 +35,8 @@ def generate_translation(
             decoder_input_ids=decoder_input_ids,
         )
 
-        print(outputs)
-        print(outputs.shape)
+        # print(outputs)
+        # print(outputs.shape)
 
         logits = outputs.logits[:, -1, :]
         next_token_id = logits.argmax(dim=-1)
