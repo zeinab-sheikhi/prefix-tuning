@@ -10,7 +10,6 @@ from transformers import get_linear_schedule_with_warmup
 from configs import BATCH_SIZE, NUM_EPOCHS, LEARNING_RATE, WARMUP_STEPS, MAX_GRAD_NORM
 from prefix_t5_model import PrefixT5
 
-
 @dataclass
 class TrainingHyperParams:
     num_epochs: int = NUM_EPOCHS
@@ -19,6 +18,7 @@ class TrainingHyperParams:
     warmup_steps: int = WARMUP_STEPS
     max_grad_norm: float = MAX_GRAD_NORM
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    prefix_length: int = 0  # Add this line
     save_path: str = field(init=False) 
 
     def __post_init__(self):
@@ -27,7 +27,7 @@ class TrainingHyperParams:
     def _model_save_path(self, base_name="prefix_t5") -> str:
         params_str = "-".join(f"{key}_{value}" for key, value in vars(self).items() if key != "save_path")
         return f"{base_name}-{params_str}.pth"
-
+import csv
 
 class Trainer:
     def __init__(
@@ -38,6 +38,7 @@ class Trainer:
         test_loader: DataLoader,
         tokenizer: T5Tokenizer,
         args: TrainingHyperParams,
+        experiment_id: str = None  # Add experiment_id parameter
     ):
         self.model = model.to(args.device)
         self.train_loader = train_loader
@@ -45,9 +46,13 @@ class Trainer:
         self.test_loader = test_loader
         self.tokenizer = tokenizer
         self.args = args
+        self.experiment_id = experiment_id  # Store experiment_id
 
         # Setup optimizer and scheduler
-        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=args.learning_rate)
+        self.optimizer = torch.optim.AdamW(
+            self.model.parameters(), 
+            lr=args.learning_rate
+        )
         num_training_steps = len(train_loader) * args.num_epochs
         self.scheduler = get_linear_schedule_with_warmup(
             self.optimizer,
@@ -55,11 +60,11 @@ class Trainer:
             num_training_steps=num_training_steps,
         )
 
-    def _train_one_epoch(self) -> float:
+    def _train_one_epoch(self, epoch: int) -> float:
         self.model.train()
         total_loss = 0
-        
-        for batch in tqdm(self.train_loader, desc="Training", unit="batch"):
+
+        for batch_idx, batch in enumerate(tqdm(self.train_loader, desc="Training", unit="batch")):
             assert "input_ids" in batch and\
                 "attention_mask" in batch and\
                 "labels" in batch and\
@@ -92,14 +97,17 @@ class Trainer:
             self.optimizer.step()
             self.scheduler.step()
 
+            # Log batch loss to CSV
+            self._log_to_csv(epoch, batch_idx, loss.item(), "train")
+
         return total_loss / len(self.train_loader)
 
     @torch.no_grad()
-    def _evaluate_one_epoch(self, dataloader: DataLoader) -> Dict[str, float]:
+    def _evaluate_one_epoch(self, epoch: int, dataloader: DataLoader) -> float:
         self.model.eval()
         total_loss = 0
 
-        for batch in tqdm(dataloader, desc="Validation", unit="batch"):
+        for batch_idx, batch in enumerate(tqdm(dataloader, desc="Validation", unit="batch")):
             assert "input_ids" in batch and\
                 "attention_mask" in batch and\
                 "labels" in batch and\
@@ -120,17 +128,33 @@ class Trainer:
             loss = outputs.loss
             total_loss += loss.item()
 
+            # Log batch loss to CSV
+            self._log_to_csv(epoch, batch_idx, loss.item(), "valid")
+
         return total_loss / len(dataloader)
+
+    def _log_to_csv(self, epoch: int, batch_idx: int, loss: float, phase: str) -> None:
+        if self.experiment_id:
+            csv_file = f"metrics_{self.experiment_id}.csv"
+            with open(csv_file, mode='a') as file:
+                writer = csv.writer(file)
+                writer.writerow([epoch, batch_idx, loss, phase, self.args.prefix_length])
 
     def train(self) -> Dict[str, Any]:
         best_valid_loss = float("inf")
         epoch_train_loss = []
         epoch_valid_loss = []
 
+        # Create CSV file and write header
+        if self.experiment_id:
+            csv_file = f"metrics_{self.experiment_id}.csv"
+            with open(csv_file, mode='w') as file:
+                writer = csv.writer(file)
+                writer.writerow(["epoch", "batch_idx", "loss", "phase", "prefix_length"])
+
         for epoch in range(self.args.num_epochs):
-            
-            train_loss = self._train_one_epoch()
-            valid_loss = self._evaluate_one_epoch(self.valid_loader)
+            train_loss = self._train_one_epoch(epoch)
+            valid_loss = self._evaluate_one_epoch(epoch, self.valid_loader)
             epoch_train_loss.append(train_loss)
             epoch_valid_loss.append(valid_loss)
             
@@ -150,42 +174,43 @@ class Trainer:
             "valid_losses": epoch_valid_loss,
         }
     
-    # def decode_batch(self, batch, generated_ids):
-    #     results = []
-    #     for i in range(len(generated_ids)):
-    #         source_text = self.tokenizer.decode(batch['input_ids'][i], skip_special_tokens=True)
-    #         target_text = self.tokenizer.decode(batch['labels'][i], skip_special_tokens=True)
-    #         generated_text = self.tokenizer.decode(generated_ids[i], skip_special_tokens=True)
-    #         results.append({
-    #             'source': source_text,
-    #             'target': target_text,
-    #             'generated': generated_text
-    #         })
-    #     return results
-
-    def save_model(self, save_path: str) -> None:
-        save_dir = os.path.join("models", os.path.basename(save_path))
-        os.makedirs(os.path.dirname(save_dir), exist_ok=True)        
-        torch.save(
-            {
-                "model_state_dict": self.model.state_dict(),
-                "optimizer_state_dict": self.optimizer.state_dict(),
-                "scheduler_state_dict": self.scheduler.state_dict(),
-            },
-            save_dir,
-        )
-
-        print(f"Model saved at models/{save_path}")
-
-
+    
+# def load_model(
+#     base_model: torch.nn.Module,
+#     save_path: str,
+#     device: str = "cuda" if torch.cuda.is_available() else "cpu",
+# ) -> torch.nn.Module:
+    
+#     model = PrefixT5(t5_model=base_model).to(device)
+#     checkpoint = torch.load(save_path, map_location=device, weights_only=True)
+#     model.load_state_dict(checkpoint["model_state_dict"])    
+#     print(f"Model successfully loaded from {save_path}")
+#     return model
 def load_model(
     base_model: torch.nn.Module,
     save_path: str,
     device: str = "cuda" if torch.cuda.is_available() else "cpu",
+    prefix_length: int = None,
+    prefix_projection_size: int = None
 ) -> torch.nn.Module:
+    # If specific prefix parameters are provided, use them
+    if prefix_length is not None and prefix_projection_size is not None:
+        model = PrefixT5(
+            t5_model=base_model, 
+            prefix_length=prefix_length, 
+            prefix_projection_size=prefix_projection_size
+        ).to(device)
+    else:
+        # Fallback to default or existing configuration
+        model = PrefixT5(t5_model=base_model).to(device)
     
-    model = PrefixT5(t5_model=base_model).to(device)
-    checkpoint = torch.load(save_path, map_location=device, weights_only=True)
-    model.load_state_dict(checkpoint["model_state_dict"])    
+    checkpoint = torch.load(save_path, map_location=device)
+    
+    try:
+        model.load_state_dict(checkpoint["model_state_dict"])
+    except RuntimeError as e:
+        print(f"Warning: Could not load exact state dict. Error: {e}")
+        # Optionally implement more sophisticated state dict loading
+    
     print(f"Model successfully loaded from {save_path}")
     return model

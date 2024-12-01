@@ -7,10 +7,10 @@ from trainer import Trainer, TrainingHyperParams
 from configs import CHECKPOINT, DATASET, BATCH_SIZE
 
 def hyperparameter_tuning(
-    prefix_lengths=[5, 10, 15],
-    projection_sizes=[256, 512, 768],
-    learning_rates=[1e-3, 1e-2],
-    num_epochs=15
+    prefix_lengths=[50, 100, 200],
+    projection_sizes=[512],
+    learning_rates=[1e-3],
+    num_epochs=5
 ):
 
     # Load base models
@@ -77,6 +77,7 @@ def hyperparameter_tuning(
                     learning_rate=learning_rate,
                     warmup_steps=100,
                     max_grad_norm=1,
+                    prefix_length=prefix_length  # Add this line
                 )
 
                 # Modify save path to include experiment details
@@ -89,7 +90,8 @@ def hyperparameter_tuning(
                     train_loader=train_loader,
                     valid_loader=valid_loader,
                     test_loader=valid_loader,  # Using valid loader as test loader for this example
-                    args=training_params
+                    args=training_params,
+                    experiment_id=experiment_id  # Pass experiment_id to Trainer
                 )
 
                 # Train and store results
@@ -108,27 +110,27 @@ def hyperparameter_tuning(
 
     return results
 
-# Run hyperparameter tuning
+# # Run hyperparameter tuning
 tuning_results = hyperparameter_tuning()
 
-# Analyze and print results
-def print_best_configurations(results):
-    """
-    Print best configurations based on validation loss
-    """
-    print("\n--- Hyperparameter Tuning Results ---")
-    sorted_results = sorted(
-        results.items(), 
-        key=lambda x: min(x[1]['valid_losses'])
-    )
+# # Analyze and print results
+# def print_best_configurations(results):
+#     """
+#     Print best configurations based on validation loss
+#     """
+#     print("\n--- Hyperparameter Tuning Results ---")
+#     sorted_results = sorted(
+#         results.items(), 
+#         key=lambda x: min(x[1]['valid_losses'])
+#     )
 
-    print("\nTop 3 Best Configurations:")
-    for i, (exp_id, result) in enumerate(sorted_results[:3], 1):
-        print(f"\n{i}. Experiment: {exp_id}")
-        print(f"   Final Validation Loss: {min(result['valid_losses']):.4f}")
-        print("   Configuration:")
-        for key, value in result['config'].items():
-            print(f"     {key}: {value}")
+#     print("\nTop 3 Best Configurations:")
+#     for i, (exp_id, result) in enumerate(sorted_results[:3], 1):
+#         print(f"\n{i}. Experiment: {exp_id}")
+#         print(f"   Final Validation Loss: {min(result['valid_losses']):.4f}")
+#         print("   Configuration:")
+#         for key, value in result['config'].items():
+#             print(f"     {key}: {value}")
 
-# Analyze results
-print_best_configurations(tuning_results)
+# # Analyze results
+# print_best_configurations(tuning_results)
