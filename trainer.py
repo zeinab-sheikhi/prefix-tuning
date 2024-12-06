@@ -173,6 +173,19 @@ class Trainer:
             "train_losses": epoch_train_loss,
             "valid_losses": epoch_valid_loss,
         }
+    def save_model(self, save_path: str) -> None:
+        save_dir = os.path.join("models", os.path.basename(save_path))
+        os.makedirs(os.path.dirname(save_dir), exist_ok=True)        
+        torch.save(
+            {
+                "model_state_dict": self.model.state_dict(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+                "scheduler_state_dict": self.scheduler.state_dict(),
+            },
+            save_dir,
+        )
+
+        print(f"Model saved at models/{save_path}")
     
     
 # def load_model(
