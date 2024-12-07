@@ -7,10 +7,10 @@ from trainer import Trainer, TrainingHyperParams
 from configs import CHECKPOINT, DATASET, BATCH_SIZE
 
 def hyperparameter_tuning(
-    prefix_lengths=[50, 100, 200],
+    prefix_lengths=[5, 10, 15],
     projection_sizes=[512],
-    learning_rates=[1e-3],
-    num_epochs=5
+    learning_rates=[8e-05, 5e-05],
+    num_epochs=20
 ):
 
     # Load base models
