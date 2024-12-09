@@ -15,3 +15,21 @@ This project implements prefix-tuning, a lightweight alternative to fine-tuning 
 - **Description**: This task involves translating sentences from English to French.
 - **Model**: T5 with prefix-tuning
 - **Prefix Length**: 10 tokens
+
+
+
+## Project Structure
+
+```plaintext
+├── README.md              # Documentation for the project
+├── app.ipynb              # Jupyter Notebook for model experimentation
+├── configs.py             # Configuration settings for the project
+├── hyp_tuning_script.py   # Script for hyperparameter tuning
+├── metrics.py             # Evaluation metrics implementation
+├── prediction.py          # Prediction logic for the translation model
+├── prefix_t5_model.py     # T5 model with prefix-tuning integration
+├── requirements.txt       # List of project dependencies
+├── trainer.py             # Training pipeline for the model
+├── translation_dataset.py # Dataset preparation and loading utilities
+
+```configs.py```: This file defines the configuration settings for the project, including model checkpoint paths, dataset selection, hyperparameters (batch size, learning rate, and epochs), and prefix-tuning parameters for the translation model.
