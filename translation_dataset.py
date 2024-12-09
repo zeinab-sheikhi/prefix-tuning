@@ -1,15 +1,15 @@
 from torch.utils.data import Dataset, DataLoader
 from transformers import T5Tokenizer
+from configs import BATCH_SIZE, MAX_LENGTH
 
 
-# Define TranslationDataset class
 class TranslationDataset(Dataset):
     def __init__(
         self,
         data,
         tokenizer: T5Tokenizer,
         shift_right_func: callable = None,
-        max_length: int = 128,
+        max_length: int = MAX_LENGTH,
         source_lang: str = "en",
         target_lang: str = "fr",
         task_prefix: str = "translate English to French: "
@@ -60,14 +60,9 @@ class TranslationDataset(Dataset):
         return features
 
 
-# Create data loaders
-def create_dataloader(dataset, tokenizer, shift_right_func, batch_size, max_length):
-    """
-    Create a DataLoader for a given dataset.
-    """
-    translation_dataset = TranslationDataset(data=dataset, tokenizer=tokenizer, max_length=max_length, shift_right_func=shift_right_func)
+def create_dataloader(dataset, batch_size=BATCH_SIZE):
     return DataLoader(
-        translation_dataset,
+        dataset,
         batch_size=batch_size,
         shuffle=True
     )

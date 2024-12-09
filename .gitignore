@@ -2,4 +2,7 @@
 .env
 bart_baseline.ipynb
 test.ipynb
+t5_baseline.ipynb
+plots.ipynb
 *.pyc
+models/
