@@ -32,4 +32,4 @@ This project implements prefix-tuning, a lightweight alternative to fine-tuning 
 ├── trainer.py             # Training pipeline for the model
 ├── translation_dataset.py # Dataset preparation and loading utilities
 
-`configs.py`: This file defines the configuration settings for the project, including model checkpoint paths, dataset selection, hyperparameters (batch size, learning rate, and epochs), and prefix-tuning parameters for the translation model.
+```configs.py: This file defines the configuration settings for the project, including model checkpoint paths, dataset selection, hyperparameters (batch size, learning rate, and epochs), and prefix-tuning parameters for the translation model.
