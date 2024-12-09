@@ -1,5 +1,7 @@
-torch
-tqdm
-transformers
-torchvision
-pip install sentencepiece
+torch==2.5.1                     # PyTorch
+transformers==4.46.3             # Hugging Face Transformers
+datasets==3.1.0                  # Hugging Face Datasets
+evaluate==0.4.3                  # Hugging Face Evaluate
+tqdm==4.67.0                     # Progress Bar
+matplotlib==3.9.3                # Plotting
+numpy==2.1.3                     # Required for PyTorch and Transformers
