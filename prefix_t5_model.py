@@ -49,10 +49,10 @@ class PrefixT5(nn.Module):
         if labels is not None:
             # Ignore prefix positions in loss calculation
             new_labels = torch.full(
-                    (batch_size, self.prefix_length),
-                    -100,
-                    device=labels.device,
-                    dtype=labels.dtype
+                (batch_size, self.prefix_length),
+                -100,
+                device=labels.device,
+                dtype=labels.dtype
             )
             labels = torch.cat([new_labels, labels], dim=1)
         else:
