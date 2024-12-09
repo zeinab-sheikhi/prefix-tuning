@@ -1,4 +1,5 @@
 *.pdf
 .env
 bart_baseline.ipynb
+test.ipynb
 *.pyc
