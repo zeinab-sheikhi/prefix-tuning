@@ -32,4 +32,9 @@ This project implements prefix-tuning, a lightweight alternative to fine-tuning 
 ├── trainer.py             # Training pipeline for the model
 ├── translation_dataset.py # Dataset preparation and loading utilities
 
-```configs.py: This file defines the configuration settings for the project, including model checkpoint paths, dataset selection, hyperparameters (batch size, learning rate, and epochs), and prefix-tuning parameters for the translation model.
+### `configs.py`
+This file contains configuration settings for the project, including:
+- Model checkpoint: `google-t5/t5-small`
+- Dataset: `Helsinki-NLP/opus_books`
+- Hyperparameters: batch size, learning rate, number of epochs, warmup steps, and gradient clipping.
+- Prefix-tuning parameters: prefix length and projection size.
