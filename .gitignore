@@ -6,3 +6,4 @@ t5_baseline.ipynb
 plots.ipynb
 *.pyc
 models/
+.DS_Store
