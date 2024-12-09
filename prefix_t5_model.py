@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 
-from transformers import T5Tokenizer, T5ForConditionalGeneration
-
 
 class PrefixT5(nn.Module):
     
