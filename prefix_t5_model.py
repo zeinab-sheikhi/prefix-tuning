@@ -27,7 +27,7 @@ class PrefixT5(nn.Module):
         batch_size = input_ids.shape[0]
 
         # prepend the prefix to the encoder embeddings
-        encoder_prefix = self.encoder_prefix().unsqueeze(0).expand(batch_size, -1, -1)
+        encoder_prefix = self.encoder_prefix().unsqueeze(0).expand(batch_size, -1, -1)            # shape: (batch_size, prefix_len, hidden_size)        
         encoder_embeddings = self.t5.shared(input_ids)                                            # shape: (batch_size, seq_len, hidden_size)        
         concatenated_encoder_embeddings = torch.cat([encoder_prefix, encoder_embeddings], dim=1)  # shape: (batch_size, prefix_len+seq_len, hidden_size)        
 
@@ -38,7 +38,7 @@ class PrefixT5(nn.Module):
 
         # encoder attention mask
         prefix_attention = torch.ones(batch_size, self.prefix_length, device=input_ids.device)
-        encoder_attention_mask = torch.cat([prefix_attention, attention_mask], dim=1)
+        encoder_attention_mask = torch.cat([prefix_attention, attention_mask], dim=1)  # shape: (batch_size, seq_len+prefix_len)
         
         encoder_outputs = self.t5.encoder(
             inputs_embeds=concatenated_encoder_embeddings,
